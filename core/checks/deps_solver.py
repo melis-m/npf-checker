@@ -6,29 +6,6 @@ import core.checks.utils as utils
 import core.log as log
 
 
-class SingleElfDepChecker(base.CheckWithManifest):
-    def __init__(self, pkg, dep_list, file_needed, by):
-        super().__init__(pkg, [dep_list])
-        self.file_needed = file_needed
-        self.by = by
-
-    def validate(self, dep_list):
-        for dep in dep_list:
-            if dep in self.manifest['dependencies']:
-                return True
-        return False
-
-    def show(self, dep_list):
-        log.i(f"No package dependency was found in manifest.toml to satisfy dependency to {self.file_needed} (required at least by {self.by})")
-
-    def diff(self, dep_list):
-        log.i(f"Dependency to {dep_list[0]} would be added, with '*' as version requirement")
-
-    def fix(self, dep_list):
-        self.manifest['dependencies'][dep_list[0]] = '*'
-        self.write_pkg_manifest()
-
-
 class ElfDepsChecker(base.CheckWithManifest):
     def __init__(self, pkg):
         elf_files = filter(
@@ -45,42 +22,58 @@ class ElfDepsChecker(base.CheckWithManifest):
     def validate(self, item):
         log.i(f"Checking {item}")
         self.missing_deps = {}
+        self.new_deps = {}
         deps = self._fetch_elf_deps(item)
-        for d in deps:
-            if d not in self.already_solved:
-                repositories = map(
-                        lambda x: f"{x}.raven-os.org",
-                        ['stable', 'beta', 'unstable']
-                )
-                for rep in repositories:
-                    res = self._solve_in_repository(d, rep)
-                    self.already_solved.append(d)
-                    if res in self.pkg.manifest['dependencies']:
-                        return True
-                    else:
-                        return False
-            else:
-                log.i(f"Ignoring {d} because it has already been done")
-        return True
+        ret = True
+        with log.push():
+            for d in deps:
+                if d not in self.already_solved:
+                    log.i(f"Checking {d}")
+                    repositories = map(
+                            lambda x: f"{x}.raven-os.org",
+                            ['stable', 'beta', 'unstable']
+                    )
+                    with log.push():
+                        if not self._solve_in_repositories(d, repositories):
+                            ret = False
+                else:
+                    log.i(f"Ignoring {d} because it has already been done")
+
+        return ret
 
     def show(self, item):
-        log.d("show")
-        log.d(item)
-        log.d(f"missing deps: {self.missing_deps}")
-        log.d(f"already solved:{self.already_solved}")
+        for file, pkgs in self.missing_deps.items():
+            new = next(first['name'] for first in pkgs if first['all_versions'])
+            if new not in self.new_deps:
+                self.new_deps[new] = []
+            self.new_deps[new].append(file)
+        log.i("Some dependencies seem to be missing")
 
     def diff(self, item):
-        log.d("diff")
+        log.i("The following dependencies would be added")
+        with log.push():
+            for dep, files in self.new_deps.items():
+                log.i(f"{dep}#* (to satisfy {', '.join(files)})")
 
     def fix(self, item):
-        log.d("fix")
+        for dep, _ in self.new_deps.items():
+            self.pkg.manifest['dependencies'][dep] = '*'
+        self.write_pkg_manifest()
 
     def run(self):
         log.s("Looking for missing elf dependencies")
         super().run()
 
+    def _solve_in_repositories(self, dep, repos):
+        self.already_solved.append(dep)
+        for rep in repos:
+            res = self._solve_in_repository(dep, rep)
+            if res in self.pkg.manifest['dependencies']:
+                del self.missing_deps[dep]
+                return True
+        return False
+
     def _solve_in_repository(self, dependency, repository_url):
-        log.i(f"Looking in repository {repository_url}")
         url = f'https://{repository_url}/api/search?q={urllib.parse.quote(dependency)}&search_by=content&exact_match=true'
         try:
             resp = requests.get(url)
@@ -89,7 +82,6 @@ class ElfDepsChecker(base.CheckWithManifest):
                 if current_results:
                     if dependency not in self.missing_deps:
                         self.missing_deps[dependency] = []
-                        return current_results
                     self.missing_deps[dependency] += current_results
                 if len(current_results) == 1:
                     r = current_results[0]
@@ -116,7 +108,7 @@ class ElfDepsChecker(base.CheckWithManifest):
                     if tag.entry.d_tag == 'DT_NEEDED':
                         if tag.needed not in deps:
                             deps.append(tag.needed)
-            log.d(f"Found deps: {deps}")
+            log.i(f"Found deps to: {deps}")
         return deps
 
     @staticmethod
