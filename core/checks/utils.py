@@ -97,3 +97,14 @@ def find_files(*paths):
                 for rpath in glob.glob(rglob, recursive=True):
                     files.append(rpath)
     return files
+
+
+def find_files_generator(*paths):
+    cache = core.args.get_args().cache_dir
+    with core.pushd(cache):
+        for path in paths:
+            for rglob in braceexpand.braceexpand(path):
+                if os.path.isabs(rglob):
+                    raise RuntimeError(f"Cannot receive absolute path '{rglob}'")
+                for rpath in glob.glob(rglob, recursive=True):
+                    yield rpath
