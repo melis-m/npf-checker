@@ -22,7 +22,7 @@ def ask_yne(question, default=Answer.YES):
             s = 'y/N/e'
         elif default == Answer.EDIT:
             s = 'y/n/E'
-        answer = log.q(f"{question}[{s}] ").lower()
+        answer = log.q(f"{question} [{s}] ").lower()
         if answer == '':
             return default
         elif answer in ['y', 'yes', 'ye']:
@@ -38,7 +38,8 @@ def ask_yne(question, default=Answer.YES):
 
 def ask_yn(question, default=True):
     while True:
-        answer = log.q(question + '[Y/n] ').lower()
+        s = '[Y/n]' if default else ['y/N']
+        answer = log.q(f"{question} {s} ").lower()
         if answer == '':
             return default
         elif answer in ['y', 'yes', 'ye']:

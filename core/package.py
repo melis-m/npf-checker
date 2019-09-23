@@ -83,7 +83,7 @@ class Package:
         with log.push():
             log.s(f"name: {m['name']}")
             log.s(f"category: {m['category']}")
-            log.s(f"version: {'version'}")
+            log.s(f"version: {m['version']}")
             log.s(f"description: {metadata['description']}")
             log.s(f"tags: {', '.join(metadata['tags'])}")
             log.s(f"maintainer: {metadata['maintainer']}")

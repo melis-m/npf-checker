@@ -31,5 +31,5 @@ class FilesExecCheck(base.Check):
 class ExecCheck():
     def run(self):
         log.s(f"Checking files execute permission")
-        FilesExecCheck(utils.find_files('./usr/{,s}bin/**/*')).run()
-        FilesExecCheck(utils.find_files('./usr/lib{32,64}/**/*.so')).run()
+        FilesExecCheck(utils.find_files('./{,usr}/{,s}bin/**/*')).run()
+        FilesExecCheck(utils.find_files('./{,usr}/lib{,32,64}/**/*.so')).run()

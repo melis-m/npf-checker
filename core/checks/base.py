@@ -49,7 +49,7 @@ class Check():
                                     elif answer == utils.Answer.EDIT:
                                         self.edit(item)
                                 else:
-                                    if utils.ask_yn("Edit manually? "):
+                                    if utils.ask_yn("Edit manually?"):
                                         self.edit(item)
 
     def validate(self, item):

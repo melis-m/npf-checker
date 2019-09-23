@@ -37,3 +37,7 @@ class DescriptionCheck(base.CheckWithManifest):
             log.i("The first letter would be converted to uppercase")
         if not self.full_stop:
             log.i("A full stop would be added at the end")
+
+    def run(self):
+        log.s("Checking the description of the package")
+        super().run()
