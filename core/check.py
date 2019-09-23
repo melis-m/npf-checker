@@ -6,8 +6,8 @@ import core.checks.version_validity as version
 
 
 def check_package(pkg):
-    exe.ExecCheck().run()
-    stx.DescriptionCheck(pkg).run()
-    verreqsolv.VersionReqsResolvabilityCheck(pkg).run()
+    # exe.ExecCheck().run()
+    # stx.DescriptionCheck(pkg).run()
+    # verreqsolv.VersionReqsResolvabilityCheck(pkg).run()
+    # version.VersionValidityCheck(pkg).run()
     deps_solver.ElfDepsChecker(pkg).run()
-    version.VersionValidityCheck(pkg).run()

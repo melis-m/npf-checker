@@ -1,9 +1,10 @@
 import elftools.elf.elffile
 import requests
-import urllib
+import urllib.parse
 import core.checks.base as base
 import core.checks.utils as utils
 import core.log as log
+import core.config
 
 
 class ElfDepsChecker(base.CheckWithManifest):
@@ -15,6 +16,8 @@ class ElfDepsChecker(base.CheckWithManifest):
                     './{,usr}/lib{,32,64}/**/*.so'
                 )
         )
+        self.repositories = core.config.get()['repositories']
+        self.new_deps = {}
         self.missing_deps = {}
         self.already_solved = []
         super().__init__(pkg, elf_files)
@@ -29,12 +32,8 @@ class ElfDepsChecker(base.CheckWithManifest):
             for d in deps:
                 if d not in self.already_solved:
                     log.i(f"Checking {d}")
-                    repositories = map(
-                            lambda x: f"{x}.raven-os.org",
-                            ['stable', 'beta', 'unstable']
-                    )
                     with log.push():
-                        if not self._solve_in_repositories(d, repositories):
+                        if not self._solve_in_repositories(d, self.repositories):
                             ret = False
                 else:
                     log.i(f"Ignoring {d} because it has already been done")
@@ -66,15 +65,15 @@ class ElfDepsChecker(base.CheckWithManifest):
 
     def _solve_in_repositories(self, dep, repos):
         self.already_solved.append(dep)
-        for rep in repos:
-            res = self._solve_in_repository(dep, rep)
+        for repo_name, repo in repos.items():
+            res = self._solve_in_repository(dep, repo['url'])
             if res in self.pkg.manifest['dependencies']:
                 del self.missing_deps[dep]
                 return True
         return False
 
     def _solve_in_repository(self, dependency, repository_url):
-        url = f'https://{repository_url}/api/search?q={urllib.parse.quote(dependency)}&search_by=content&exact_match=true'
+        url = f'{repository_url}/api/search?q={urllib.parse.quote(dependency)}&search_by=content&exact_match=true'
         try:
             resp = requests.get(url)
             if resp.ok:
