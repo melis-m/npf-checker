@@ -45,6 +45,13 @@ def parse_args():
             'Config.toml',
         ),
     )
+    _parser.add_argument(
+        '--no-skip-duplicate-files-check',
+        action='store_true',
+        help="If specified, the check that ensures that no other packages share similar files "
+             "with this one will not be skipped (it is skipped by default because it is very "
+             "slow). "
+    )
     _args = _parser.parse_args()
 
 
