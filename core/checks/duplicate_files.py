@@ -1,9 +1,9 @@
 import requests
-import urllib.parse
 import os.path
 import core.checks.base as base
 import core.log as log
 import core.checks.utils as utils
+import core.config
 
 
 class DuplicateFilesCheck(base.Check):
@@ -14,20 +14,28 @@ class DuplicateFilesCheck(base.Check):
                 utils.find_files_generator('**/*'),
             ),
         )
-        self.match = None
+        self.match = []
         self.pkg = pkg
+        self.repositories = core.config.get()['repositories']
 
     def run(self):
         log.s("Checking if the new files are not already in other packages")
         super().run()
-
+        
     def validate(self, item):
         log.i(f"Checking {item}")
-        repository_url = 'beta.raven-os.org'
-        self.match = None
+        self.match = []
+        with log.push():
+            for repo in self.repositories.items():
+                self.check_in_repo(item, repo)
+
+    def check_in_repo(self, item, repo):
+        repo_name, repo_data = repo
+        repo_url = repo_data['url']
+        log.i(f"On repository {repo_name} ({repo_url})")
         try:
             resp = requests.get(
-                url=f'https://{repository_url}/api/search',
+                url=f'{repo_url}/api/search',
                 params={
                     'q': os.path.basename(item),
                     'search_by': 'content',
@@ -40,22 +48,22 @@ class DuplicateFilesCheck(base.Check):
                         repo, cat_name = res['name'].split('::')
                         m = self.pkg.manifest
                         if cat_name != f'{m["category"]}/{m["name"]}':
-                            self.match = res['name']
+                            self.match.append(res['name'])
                             return False
                 return True
             else:
                 log.e(resp.content)
                 log.e(
-                    f"An unknown error occurred when fetching \"{repository_url}\" (is the link dead?), skipping...")
+                    f"An unknown error occurred when fetching \"{repo_url}\" (is the link dead?), skipping...")
                 return True
         except Exception as e:
             log.e(e)
             log.e(
-                f"An unknown error occurred when fetching \"{repository_url}\" (is the link dead?), skipping...")
+                f"An unknown error occurred when fetching \"{repo_url}\" (is the link dead?), skipping...")
             return True
 
     def show(self, item):
-        log.e(f"{item} is already present in {self.match}")
+        log.w(f"{item} is already present in {', '.join(self.match)}")
 
     def diff(self, item):
         log.i(f"{item} would be removed from the package")
