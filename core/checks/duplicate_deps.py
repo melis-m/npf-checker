@@ -31,7 +31,7 @@ class DuplicateDepsCheck(base.CheckWithManifest):
         return full_name[sep + 2:], full_name[:sep]
 
     def run(self):
-        log.i("Checking for duplicate dependencies (e.g. same package but from different repos)")
+        log.s("Checking for duplicate dependencies (e.g. same package but from different repos)")
         super().run()
 
     def validate(self, item):
