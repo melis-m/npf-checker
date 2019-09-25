@@ -1,0 +1,11 @@
+# Repository list to be used for the different checks
+# The order in which the repositories are tested will be the same as the order here
+
+[repositories.stable]
+url = "https://stable.raven-os.org"
+
+[repositories.beta]
+url = "https://beta.raven-os.org"
+
+[repositories.unstable]
+url = "https://unstable.raven-os.org"
