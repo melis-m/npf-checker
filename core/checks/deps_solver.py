@@ -4,7 +4,7 @@ import urllib.parse
 import core.checks.base as base
 import core.checks.utils as utils
 import core.log as log
-import core.config
+import core.repositories
 
 
 class ElfDepsChecker(base.CheckWithManifest):
@@ -16,7 +16,7 @@ class ElfDepsChecker(base.CheckWithManifest):
                     './{,usr}/lib{,32,64}/**/*.so'
                 )
         )
-        self.repositories = core.config.get()['repositories']
+        self.repositories = core.repositories.get_all()
         self.new_deps = {}
         self.missing_deps = {}
         self.already_solved = []
