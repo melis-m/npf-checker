@@ -3,7 +3,7 @@ import os.path
 import core.checks.base as base
 import core.log as log
 import core.checks.utils as utils
-import core.config
+import core.repositories
 
 
 class DuplicateFilesCheck(base.Check):
@@ -16,7 +16,7 @@ class DuplicateFilesCheck(base.Check):
         )
         self.match = []
         self.pkg = pkg
-        self.repositories = core.config.get()['repositories']
+        self.repositories = core.repositories.get_all()
 
     def run(self):
         log.s("Checking if the new files are not already in other packages")
