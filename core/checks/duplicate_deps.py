@@ -2,6 +2,7 @@ import core.args
 import core.config
 import core.checks.base as base
 import core.log as log
+import core.repositories
 
 
 class DuplicateDepsCheck(base.CheckWithManifest):
@@ -45,23 +46,14 @@ class DuplicateDepsCheck(base.CheckWithManifest):
     def diff(self, item):
         self.winning_repo = ""
         pkg, repos = item
-        conf = core.config.get()
-        lowest_idx = 0
-        config_repos = list(conf['repositories'].keys())
-        for repo in repos:
-            try:
-                idx = config_repos.index(repo)
-                if idx < lowest_idx:
-                    lowest_idx = idx
-            except ValueError:
-                log.w(f"Repository '{repo}' isn't defined in {self.config_file_path}, skipping...")
-        self.winning_repo = config_repos[lowest_idx]
+        self.winning_repo = core.repositories.get_first_of(repos)
         log.i(
-            f"The dependency to '{self.winning_repo}' will be kept, as it appears first in {self.config_file_path}")
+            f"The dependency to \'{self.winning_repo[0]} ({self.winning_repo[1]['url']})\' will be kept, as it appears first in {self.config_file_path}")
 
     def fix(self, item):
         pkg, repos = item
-        repos.remove(self.winning_repo)
+        repos.remove(self.winning_repo[0])
         for repo in repos:
             del self.pkg.manifest['dependencies'][f'{repo}::{pkg}']
+            log.i(f"Removed dependency to '{repo}::{pkg}'")
         self.write_pkg_manifest()
